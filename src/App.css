@@ -175,3 +175,13 @@ body {
 .dark .text-white {
   color: #f8fafc !important;
 }
+
+/* In-chat search matches (CSS Custom Highlight API, see MessageList) */
+::highlight(search-match) {
+  background-color: #fde68a;
+  color: #111827;
+}
+::highlight(search-current) {
+  background-color: #f59e0b;
+  color: #111827;
+}

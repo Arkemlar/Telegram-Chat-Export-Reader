@@ -54,12 +54,19 @@ Export format facts:
 
 ## UI components
 
-- `MessageList.jsx` — custom virtualization: only items near the viewport are mounted; heights are measured
-  with `offsetHeight` (excludes margins, `ESTIMATED_HEIGHT` = 160 until measured), so estimated positions
-  drift. Anything that needs real positions must measure the DOM (items carry `data-index`).
-  Also renders the pinned day badge (`ru-RU` full date of the topmost visible message; recomputed after
-  every render and on `ResizeObserver`).
+- `MessageList.jsx` — custom virtualization: only items near the viewport are mounted (chats can have
+  20k+ messages with lots of media, so rendering everything is not an option). Heights come from a
+  `ResizeObserver` in `MessageItem` (`offsetHeight`; items use padding, not margins, so that is the full
+  height); unmeasured items count as `ESTIMATED_HEIGHT` = 160, so far-away positions are estimates.
+  Anything that needs real positions measures the DOM (items carry `data-index`); `revealMessage(index)`
+  jumps to the estimate, then corrects from the DOM after each render.
+  Also renders the pinned day badge (`ru-RU` full date of the topmost visible message).
 - Items unmount when scrolled away — do not keep long-lived state (e.g. playback) inside messages.
+- Search: the browser's Ctrl+F only sees rendered messages, so Ctrl+F (and the header button) opens
+  `ChatSearchBar`. Matching runs over parsed `message.text` (case-insensitive, `ё` = `е`), navigation is
+  per message (Enter / Shift+Enter / F3); a second Ctrl+F inside the box falls through to native find.
+  Matches in rendered `[data-search-text]` blocks are painted with the CSS Custom Highlight API
+  (`::highlight(search-match | search-current)` in `App.css`).
 - `context/VoicePlayerContext.jsx` — the single app-wide `Audio` element: one voice at a time, survives
   scrolling, auto-advances to the next voice, speed 1–2× step 0.25 persisted in
   `localStorage.voicePlaybackRate` (set `defaultPlaybackRate` too — a new `src` resets `playbackRate`).

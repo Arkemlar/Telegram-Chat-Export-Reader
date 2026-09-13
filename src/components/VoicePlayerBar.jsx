@@ -63,7 +63,8 @@ const VoicePlayerBar = () => {
   const iconButton = 'w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 transition disabled:opacity-30 disabled:hover:bg-transparent';
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm relative z-20">
+    // z-30: above the search bar (z-20), so the speed menu overlaps it
+    <div className="bg-white border-b border-gray-200 shadow-sm relative z-30">
       <div className="max-w-5xl mx-auto px-4 pt-2 pb-1">
         <div className="flex items-center gap-1">
           <button onClick={player.prev} disabled={!player.hasPrev} className={iconButton} aria-label="Previous voice message">

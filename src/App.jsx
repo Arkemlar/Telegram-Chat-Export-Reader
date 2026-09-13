@@ -18,6 +18,7 @@ const App = () => {
     }
     return false;
   });
+  const [searchOpen, setSearchOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ const App = () => {
     setLoading(true);
     setProgress(0);
     setMessages([]);
+    setSearchOpen(false);
 
     // Telegram splits big exports into messages.html, messages2.html, messages3.html, ...
     const pages = files
@@ -152,6 +154,7 @@ const App = () => {
           isDarkMode={darkMode}
           onToggleDarkMode={() => setDarkMode(prevMode => !prevMode)}
           onLoadClick={() => fileInputRef.current?.click()}
+          onSearchClick={messages.length > 0 ? () => setSearchOpen(open => !open) : undefined}
         />
         <VoicePlayerBar />
 
@@ -164,7 +167,7 @@ const App = () => {
             />
           </div>
         ) : (
-          <MessageList messages={messages} />
+          <MessageList messages={messages} searchOpen={searchOpen} onSearchOpenChange={setSearchOpen} />
         )}
 
         <input

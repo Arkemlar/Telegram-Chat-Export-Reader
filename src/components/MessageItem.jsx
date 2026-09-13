@@ -6,21 +6,26 @@ const MessageItem = memo(({ message, index, onHeightChange, onOpenGlobalMedia })
   const itemRef = useRef(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
+  // Re-measure whenever the size changes (images and stickers load later).
+  // Spacing is padding, not margin, so offsetHeight is the item's full height in the list.
   useEffect(() => {
-    if (itemRef.current) {
-      const height = itemRef.current.offsetHeight;
-      onHeightChange(index, height);
-    }
-  }, [message, index, onHeightChange]);
+    const el = itemRef.current;
+    if (!el) return;
+    const report = () => onHeightChange(index, el.offsetHeight);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [index, onHeightChange]);
 
   if (message.type === 'service') {
     return (
       <div
         ref={itemRef}
         data-index={index}
-        className="my-6 text-center"
+        className="pt-2 pb-6 text-center"
       >
-        <div className="inline-block bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-full">
+        <div className="inline-block bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-full" data-search-text>
           {message.text}
         </div>
       </div>
@@ -46,9 +51,11 @@ const MessageItem = memo(({ message, index, onHeightChange, onOpenGlobalMedia })
   const isJoinedMessage = !message.from || !message.initials;
 
   return (
-    <div ref={itemRef} data-index={index} className="mb-4 flex gap-2">
-      {/* Avatar - only show if not a joined message */}
-      {!isJoinedMessage && (
+    <div ref={itemRef} data-index={index} className="pb-4 flex gap-2">
+      {/* Avatar; joined messages keep an empty slot so all messages share one text column */}
+      {isJoinedMessage ? (
+        <div className="w-8 flex-shrink-0" />
+      ) : (
         <div
           className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-xs ${bgColor}`}
         >
@@ -113,11 +120,11 @@ const MessageItem = memo(({ message, index, onHeightChange, onOpenGlobalMedia })
 
         {/* Text content */}
         {message.formattedHTML ? (
-          <div className="px-3">
+          <div className="px-3" data-search-text>
             <FormattedText html={message.formattedHTML} />
           </div>
         ) : message.text ? (
-          <div className="text-sm text-gray-900 break-words whitespace-pre-wrap px-3">
+          <div className="text-sm text-gray-900 break-words whitespace-pre-wrap px-3" data-search-text>
             {message.text}
           </div>
         ) : null}
