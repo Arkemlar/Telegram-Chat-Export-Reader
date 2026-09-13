@@ -6,8 +6,25 @@ const ESTIMATED_HEIGHT = 160;
 const BUFFER_SIZE = 8;
 const BOTTOM_SPACER = 120;
 
+// "20.10.2023 13:58:12 UTC+03:00" -> "Пятница, 20 октября 2023 г."
+const dayLabelCache = new Map();
+const formatDay = (date) => {
+  const match = date?.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+  if (!match) return '';
+  const key = match[0];
+  if (!dayLabelCache.has(key)) {
+    const [, d, m, y] = match;
+    const label = new Date(+y, +m - 1, +d).toLocaleDateString('ru-RU', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+    dayLabelCache.set(key, label.charAt(0).toUpperCase() + label.slice(1));
+  }
+  return dayLabelCache.get(key);
+};
+
 const MessageList = ({ messages }) => {
   const containerRef = useRef(null);
+  const listRef = useRef(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   const heightsRef = useRef(new Map());
@@ -15,6 +32,23 @@ const MessageList = ({ messages }) => {
   // Global media viewer state
   const [globalViewerOpen, setGlobalViewerOpen] = useState(false);
   const [globalIndex, setGlobalIndex] = useState(0);
+  // Index of the topmost visible message, for the pinned date badge
+  const [topIndex, setTopIndex] = useState(0);
+
+  // Day label for every message. Service messages (e.g. the day separator) have no date
+  // and take the next message's day; trailing ones fall back to the previous day.
+  const dayLabels = useMemo(() => {
+    const labels = new Array(messages.length).fill('');
+    let next = '';
+    for (let i = messages.length - 1; i >= 0; i--) {
+      next = formatDay(messages[i].date) || next;
+      labels[i] = next;
+    }
+    for (let i = 1; i < labels.length; i++) {
+      if (!labels[i]) labels[i] = labels[i - 1];
+    }
+    return labels;
+  }, [messages]);
 
   // Build a flat list of all media (photos/videos/gifs/animations/round_video) across messages
   const globalMedia = useMemo(() => {
@@ -140,12 +174,47 @@ const MessageList = ({ messages }) => {
   
   const visibleMessages = messages.slice(safeStartIndex, safeEndIndex);
 
+  // Measured from the DOM: estimated heights drift, real positions don't
+  const updateTopIndex = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const top = container.getBoundingClientRect().top;
+    for (const el of container.querySelectorAll('[data-index]')) {
+      if (el.getBoundingClientRect().bottom > top) {
+        setTopIndex(Number(el.dataset.index));
+        return;
+      }
+    }
+  }, []);
+
+  // After every render (scroll, re-measured heights)...
+  useEffect(updateTopIndex);
+
+  // ...and when content resizes on its own (images, stickers loading)
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const observer = new ResizeObserver(updateTopIndex);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [updateTopIndex]);
+
+  const currentDay = dayLabels[Math.min(topIndex, dayLabels.length - 1)];
+
   return (
     <div 
       ref={containerRef}
       className="flex-1 overflow-y-auto overscroll-y-contain bg-white pb-20"
       onScroll={handleScroll}
     >
+      {/* Pinned date badge; zero height so it doesn't shift the virtualized list */}
+      {currentDay && (
+        <div className="sticky top-0 z-10 h-0 flex items-start justify-center pointer-events-none">
+          <div className="mt-2 px-3 py-1 rounded-full bg-white border border-gray-200 shadow-sm text-xs font-medium text-gray-700 whitespace-nowrap">
+            {currentDay}
+          </div>
+        </div>
+      )}
       {globalViewerOpen && globalMedia[globalIndex] && (
         <MediaViewer
           item={globalMedia[globalIndex].item}
@@ -168,6 +237,7 @@ const MessageList = ({ messages }) => {
               right: 0,
               transform: `translateY(${offsetY}px)`,
             }}
+            ref={listRef}
           >
             {visibleMessages.map((msg, idx) => {
               const actualIndex = safeStartIndex + idx;

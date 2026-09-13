@@ -26,7 +26,8 @@ export const parseMessage = async (messageDiv, allFiles, basePath) => {
     const text = replyToEl.textContent.trim();
     const link = replyToEl.querySelector('a');
     const isAnotherChat = text.includes('another chat');
-    const messageId = link ? link.getAttribute('href')?.match(/\d+/)?.[0] : null;
+    // href is "#go_to_message123" or "messages2.html#go_to_message123"
+    const messageId = link ? link.getAttribute('href')?.match(/go_to_message(\d+)/)?.[1] : null;
     
     replyTo = {
       text: text,
@@ -244,6 +245,7 @@ export const parseMessage = async (messageDiv, allFiles, basePath) => {
     type: 'message',
     from: fromName,
     time,
+    date: dateEl?.getAttribute('title') || '',
     text,
     formattedHTML,
     replyTo,

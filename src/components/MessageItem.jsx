@@ -17,6 +17,7 @@ const MessageItem = memo(({ message, index, onHeightChange, onOpenGlobalMedia })
     return (
       <div
         ref={itemRef}
+        data-index={index}
         className="my-6 text-center"
       >
         <div className="inline-block bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-full">
@@ -45,7 +46,7 @@ const MessageItem = memo(({ message, index, onHeightChange, onOpenGlobalMedia })
   const isJoinedMessage = !message.from || !message.initials;
 
   return (
-    <div ref={itemRef} className="mb-4 flex gap-2">
+    <div ref={itemRef} data-index={index} className="mb-4 flex gap-2">
       {/* Avatar - only show if not a joined message */}
       {!isJoinedMessage && (
         <div
