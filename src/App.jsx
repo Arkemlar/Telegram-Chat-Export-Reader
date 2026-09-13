@@ -7,6 +7,9 @@ import { VoicePlayerProvider } from './context/VoicePlayerContext';
 import { parseHTML, listRemoteFolder } from './utils/fileHandler';
 import { parseMessage } from './utils/parser';
 
+// Folder of chat exports, served by nginx as a JSON listing (see nginx.conf); optional
+const CHATS_URL = `${import.meta.env.BASE_URL}chats/`;
+
 const App = () => {
   const [messages, setMessages] = useState([]);
   const [chatTitle, setChatTitle] = useState('');
@@ -19,6 +22,8 @@ const App = () => {
     return false;
   });
   const [searchOpen, setSearchOpen] = useState(false);
+  // [{ name, href }] from CHATS_URL; empty when nothing is mounted there
+  const [chats, setChats] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -42,6 +47,22 @@ const App = () => {
         setLoading(false);
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    fetch(CHATS_URL)
+      .then(res => (res.ok ? res.json() : []))
+      .then(entries => {
+        setChats(entries
+          .filter(e => e.type === 'directory' && !e.name.startsWith('.'))
+          .map(e => ({
+            name: e.name,
+            // Links reuse the ?chat= loader, so they work as bookmarks and in new tabs
+            href: `?chat=${encodeURIComponent(`${CHATS_URL}${encodeURIComponent(e.name)}/`)}`
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'ru')));
+      })
+      .catch(() => setChats([]));
   }, []);
 
   const loadChat = async (files, basePath) => {
@@ -73,6 +94,7 @@ const App = () => {
 
     const title = docs[0].querySelector('.page_header .text')?.textContent.trim() || 'Chat';
     setChatTitle(title);
+    document.title = title;
 
     const messageElements = docs.flatMap(doc => Array.from(doc.querySelectorAll('.message')));
     const parsedMessages = [];
@@ -155,6 +177,7 @@ const App = () => {
           onToggleDarkMode={() => setDarkMode(prevMode => !prevMode)}
           onLoadClick={() => fileInputRef.current?.click()}
           onSearchClick={messages.length > 0 ? () => setSearchOpen(open => !open) : undefined}
+          chatsHref={messages.length > 0 && chats?.length ? import.meta.env.BASE_URL : undefined}
         />
         <VoicePlayerBar />
 
@@ -163,6 +186,7 @@ const App = () => {
             <EmptyState
               loading={loading}
               progress={loading ? progress : null}
+              chats={chats}
               onLoadClick={() => fileInputRef.current?.click()}
             />
           </div>

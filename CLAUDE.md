@@ -14,10 +14,12 @@ lottie-react + pako (animated `.tgs` stickers), highlight.js. Plain JS/JSX, no T
 - Dev: `npm install && npm run dev` → http://localhost:3000/Telegram-Chat-Export-Reader/
   (`vite.config.js` has `base` for the upstream GitHub Pages deploy — keep it).
 - Docker (the way this fork is used): `Dockerfile` builds with `vite build --base=/` and serves `dist`
-  via nginx (`nginx.conf`). The export folder must be mounted read-only at `/chat`; nginx serves it at
-  `/chat/` with `autoindex_format json`. Open **http://localhost:8080/?chat=/chat/** to auto-load it.
+  via nginx (`nginx.conf`), which exposes mounted folders with `autoindex_format json`:
+  - `/chats/` — a folder whose subfolders are exports; the start page lists them (open http://localhost:8080/),
+    new exports appear without a restart;
+  - `/chat/` — alternatively a single export; open http://localhost:8080/?chat=/chat/.
 
-The export folder path lives **only** in a local docker-compose file kept outside this repo.
+The exports path lives **only** in a local docker-compose file kept outside this repo.
 Never commit chat exports, their folder names or any chat content. Compose shape:
 
 ```yaml
@@ -26,7 +28,7 @@ services:
     build: ./app                      # path to this repo
     ports: ["8080:80"]
     volumes:
-      - "./<export folder>:/chat:ro"
+      - "./chats:/chats:ro"           # folder with export folders inside
     restart: unless-stopped
 ```
 
@@ -34,7 +36,9 @@ Rebuild after code changes: `docker compose up -d --build` (from the folder with
 
 ## Loading pipeline
 
-- `src/App.jsx` — two entry points, both end in `loadChat(files, basePath)`:
+- `src/App.jsx` — fetches the `/chats/` listing for the start page (`EmptyState`) and the header's "Чаты"
+  link; each chat is a plain link to `?chat=<encoded /chats/<name>/>`. Two entry points, both end in
+  `loadChat(files, basePath)`:
   - folder picker (`<input webkitdirectory>`, works in Firefox/Chromium) → real `File`s;
   - `?chat=<url>` → `listRemoteFolder` (`utils/fileHandler.js`) walks the nginx JSON listing and returns
     file-like objects `{ name, webkitRelativePath, url, text() }`.

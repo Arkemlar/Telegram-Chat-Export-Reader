@@ -1,7 +1,7 @@
 import React from 'react';
-import { Upload, Moon, Sun, Search } from 'lucide-react';
+import { Upload, Moon, Sun, Search, ArrowLeft } from 'lucide-react';
 
-const ChatHeader = ({ chatTitle, isDarkMode, onToggleDarkMode, onLoadClick, onSearchClick }) => {
+const ChatHeader = ({ chatTitle, isDarkMode, onToggleDarkMode, onLoadClick, onSearchClick, chatsHref }) => {
   return (
     <div className="bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -15,6 +15,16 @@ const ChatHeader = ({ chatTitle, isDarkMode, onToggleDarkMode, onLoadClick, onSe
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {chatsHref && (
+            <a
+              href={chatsHref}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-100 px-3 py-2 rounded-full font-medium transition flex items-center gap-2 text-sm"
+              title="Список чатов"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Чаты
+            </a>
+          )}
           {onSearchClick && (
             <button
               onClick={onSearchClick}
